@@ -16,9 +16,9 @@ z + y -> 2y
 #. y + z -> 2y
 
 ## print parse_CRN(p2).rate_equation()
-#. dx/dt = -k0(x y) + -k1(x z) + k1(x z)*2
-#. dy/dt = -k0(x y) + -k2(y z) + k2(y z)*2
-#. dz/dt = -k1(x z) + -k2(y z) + k0(x y)*2
+#. dx/dt = -1*(x y) + (x z)
+#. dy/dt = -1*(x y) + (y z)
+#. dz/dt = 2*(x y) + -1*(x z) + -1*(y z)
 #. 
 
 example = """\
@@ -38,11 +38,11 @@ b + e  -> a + c
 ## parse_CRN(example).species()
 #. set(['a', 'c', 'b', 'e', 'd'])
 ## print parse_CRN(example).rate_equation()
-#. da/dt = -k0(a) + -k1(a c) + k2(b e) + k3(b^2) + k4(d)
-#. db/dt = -k2(b e) + -k3(b^2)*2 + k0(a)*2 + k5(d)
-#. dc/dt = -k1(a c) + k2(b e) + k4(d)
-#. dd/dt = -k4(d) + -k5(d) + k1(a c)
-#. de/dt = -k2(b e) + k5(d)
+#. da/dt = -1*(a c) + -1*(a) + (b e) + (b^2) + (d)
+#. db/dt = 2*(a) + -1*(b e) + -2*(b^2) + (d)
+#. dc/dt = -1*(a c) + (b e) + (d)
+#. dd/dt = (a c) + -2*(d)
+#. de/dt = -1*(b e) + (d)
 #. 
 
 """
@@ -72,17 +72,26 @@ class CRN:
                    for symbol, n in src + dst)
     def rate_equation(self):
         rhses = {}
-        for k, (src, dst) in enumerate(self.reactions):
-            factor = 'k%d(%s)' % (k, ' '.join(pow(sym, n)
-                                              for sym, n in sorted(src)))
+        def add(sym, factor, coeff):
+            terms = rhses.setdefault(sym, {})
+            terms[factor] = terms.get(factor, 0) + coeff
+        def total(sym):
+            terms = rhses[sym]
+            return ' + '.join(mul(factor, coeff)
+                              for factor, coeff in sorted(terms.items())
+                              if coeff != 0)
+        for src, dst in self.reactions:
+            k = 1  # rate constant for this reaction -- XXX fill in
+            factor = '(%s)' % (' '.join(pow(sym, n)
+                                        for sym, n in sorted(src)))
             for sym, n in src:
-                rhses.setdefault(sym, []).append(mul('-' + factor, n))
+                add(sym, factor, -n * k)
             for sym, n in dst:
-                rhses.setdefault(sym, []).append(mul(factor, n))
-        return '\n'.join('d%s/dt = %s' % (sym, ' + '.join(sorted(terms)))
-                         for sym, terms in sorted(rhses.items()))
+                add(sym, factor, n * k)
+        return '\n'.join('d%s/dt = %s' % (sym, total(sym))
+                         for sym in sorted(rhses))
 
-def mul(s, n): return s if n == 1 else '%s*%s' % (s, n)
+def mul(s, n): return s if n == 1 else '%s*%s' % (n, s)
 def pow(s, n): return s if n == 1 else '%s^%s' % (s, n)
 
 def show_reaction((src, dst)):
