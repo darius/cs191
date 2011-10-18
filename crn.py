@@ -75,22 +75,19 @@ class CRN:
         def add(sym, factor, coeff):
             terms = rhses.setdefault(sym, {})
             terms[factor] = terms.get(factor, 0) + coeff
-        def total(sym):
-            terms = rhses[sym]
-            return ' + '.join(mul(factor, coeff)
-                              for factor, coeff in sorted(terms.items())
-                              if coeff != 0)
         for src, dst in self.reactions:
             k = 1  # rate constant for this reaction -- XXX fill in
             factor = '(%s)' % (' '.join(pow(sym, n)
                                         for sym, n in sorted(src)))
-            for sym, n in src:
-                add(sym, factor, -n * k)
-            for sym, n in dst:
-                add(sym, factor, n * k)
-        return '\n'.join('d%s/dt = %s' % (sym, total(sym))
-                         for sym in sorted(rhses))
+            for sym, n in src: add(sym, factor, -n * k)
+            for sym, n in dst: add(sym, factor, n * k)
+        return '\n'.join('d%s/dt = %s' % (sym, total(rhs))
+                         for sym, rhs in sorted(rhses.items()))
 
+def total(terms): 
+    return ' + '.join(mul(factor, coeff)
+                      for factor, coeff in sorted(terms.items())
+                      if coeff != 0)
 def mul(s, n): return s if n == 1 else '%s*%s' % (n, s)
 def pow(s, n): return s if n == 1 else '%s^%s' % (s, n)
 
