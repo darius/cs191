@@ -19,7 +19,6 @@ z + y -> 2y
 #. dx/dt = -1*(x y) + (x z)
 #. dy/dt = -1*(x y) + (y z)
 #. dz/dt = 2*(x y) + -1*(x z) + -1*(y z)
-#. 
 
 example = """\
     a <-> 2b
@@ -43,7 +42,6 @@ b + e  -> a + c
 #. dc/dt = -1*(a c) + (b e) + (d)
 #. dd/dt = (a c) + -2*(d)
 #. de/dt = -1*(b e) + (d)
-#. 
 
 """
 Rate equation for example:
